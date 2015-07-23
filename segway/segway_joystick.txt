@@ -1,0 +1,76 @@
+Hi,
+To start of I am very glad you wrote most of my code for me… Being one of my teams programmers in the FTC tournament, 
+I was trying to learn how to use a Gyro sensor and drivers better. I got the segway to stand up tried to create my own 
+teleop program for it. I got some issues with the robot not being able to move backward and that it stutters when turning 
+left. Here is my code…
+
+#define HiTechnic_Gyro
+
+const tSensors Gyro = S2;
+const float your_wheel_diameter = 42;
+
+#include “segway-driver-lv.h”
+#include “JoystickDriver.c”
+
+task main()
+{
+StartTask(balancing);
+while(starting_balancing_task){}
+
+while(true)
+{
+getJoystickSettings(joystick);
+{
+if(joy1Btn (4) == 1)
+{
+speed = 50;
+}
+if(joy1Btn(2) == 1)
+{
+speed = -50; //Here I am having issues
+}
+if(joy1Btn(1) == 1)
+{
+steering = -17; //Here I am having issues
+
+}
+if(joy1Btn(3) == 1)
+{
+steering = 17;
+}
+else
+{
+steering = 0;
+speed = 0;
+}
+}
+}
+}
+
+Hi Roy,
+
+Glad to hear the standard program worked right away. I think you’ll need to add Wait1MSec(20); at the end of the loop.
+
+Presently you’re polling the joystick more often than the Segway code can respond to, so you should not loose performance
+in doing this.
+
+Also, you might want to use more Else statements. For instance, you go either backward or forwards, not both at the same 
+time. So add the ‘else’ as follows:
+
+if(joy1Btn (4) == 1)
+{
+speed = 50;
+}
+else if(joy1Btn(2) == 1)
+{
+speed = -50; //Here I am having issues
+}
+
+The stuttering could be explained by two conflicting commands that you give, such as telling it to go right or left at the
+same time.
+
+Let me know if this helps.
+
+Best,
+
+Laurens
