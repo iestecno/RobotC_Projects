@@ -45,98 +45,97 @@ void LowerArm ()
 // FUNCTION THAT MOVES THE ROBOT TOWARDS THE CLOSEST DETECTED OBJECT
 // DEPENDING ON THE SOUND SENSOR VALUES
 
-void Move_Closer_Sound (int speed1, int speed2, int range)
+void Move_Closer_Sound (int speed, int range)
 {
+	nSyncedMotors = synchCB;															//Syncronizing the motors
+	nSyncedTurnRatio = 100; 															//We want to follow a Straight line, no need for a varaible here
 
 	while (SensorValue [sonarSensor] > range)
   {
-   	motor[motorB] = speed1;
-	  motor[motorC] = speed2;
+   	motor[motorC] = speed;
   }
 	  motor[motorB] = 0;
 	  motor[motorC] = 0;
 }
 
 
-// FUNCTION THAT MOVES THE ROBOT TOWARDS THE CLOSEST DETECTED OBJECT
-// ONCE YOU KNOW HOW FAR YOU ARE FROM IT
+// FUNCTION THAT MOVES THE ROBOT
+// THE SPEED AND HEADING ARE CONTROLLED BY THE THE VARIABLES "speed" and "synch_ratio"
 
-void Move (int speed1, int speed2, int centimeters)
+void Move (int speed, int synch_ratio, int centimeters)
 {
 
 	nSyncedMotors = synchCB;															//Syncronizing the motors
-	nSyncedTurnRatio = 100; 															//We want to follow a Straight line
+	nSyncedTurnRatio = synch_ratio; 											//Contolling the heading
 
-	nMotorEncoder[motorB]=0;															//Initialize the encoder
-  nMotorEncoderTarget[motorB] = (34 * centimeters);  		//We use 34 as is the number of degress used per cm
+	nMotorEncoder[motorC]=0;															//Initialize the encoder
+  nMotorEncoderTarget[motorC] = (34 * centimeters);  		//We use 34 as is the number of degress used per cm
 
-  while(nMotorEncoder[motorB] < (34 * centimeters))			//Until you haven't reached your target keep going
+  while(nMotorEncoder[motorC] < (34 * centimeters))			//Until you haven't reached your target keep going
   {
-   	motor[motorB] = speed1;
-	  motor[motorC] = speed2;
+   	motor[motorC] = speed;
   }
-	  motor[motorB] = 0;																		//Stop once you are done
-	  motor[motorC] = 0;
+
+	motor[motorC] = 0;																		//Stop once you are done
 }
 
 
 
-/*FUNCTION THAT ALIGN THE SNATCHER WIHT ITS GOAL*/
+/*FUNCTION THAT ALIGNS THE SNATCHER WIHT ITS GOAL*/
 
 int Localize(int degrees_left, int search_range, int search_speed )
 {
 	//distance = 0;
 	//int closest = 255;
-	//int direction = 0;
+	int direction = 0;
 
+	nSyncedMotors = synchCB;																//Syncronizing the motors
+	nSyncedTurnRatio = -100; 																//We want the robot to spin
 
 	// Moving the snatcher to the left to start searching
-	nMotorEncoder[motorB]=0;																//Initializing the encoder
-  nMotorEncoderTarget[motorB] = degrees_left;							//Setting target
+	nMotorEncoder[motorC]=0;																//Initializing the encoder
+  nMotorEncoderTarget[motorC] = degrees_left;							//Setting target
 
-  motor[motorB] = search_speed;														//Setting motor power
-  motor[motorC] = -search_speed;													//The sing (+) (-) are used to spin to the right or left
-  while(nMotorRunState[motorB] != runStateIdle)						//Wait till we are done
+  motor[motorC] = -search_speed;													//Setting motor power
+
+  while(nMotorRunState[motorC] != runStateIdle)						//Wait till we are done
   {
     // do nothing
   }
-	motor[motorB]= 0;
-	motor[motorC]= 0;
-	wait10Msec(10);
+
+	motor[motorC]= 0;																				//Stop the motors
+	wait10Msec(100);
 
 	// Starting the search now
-  nMotorEncoder[motorC]= 0;																//Using motor
+  nMotorEncoder[motorC]= 0;																//Using motor C encoder to search
   nMotorEncoderTarget [motorC]= search_range;
 
   while (nMotorEncoder[motorC] < search_range)
   {
   	distance = SensorValue[sonarSensor];
-		motor[motorB] = -search_speed;
+
   	motor[motorC] = search_speed;
 
-  	if (distance < closest)
+  	if (distance < closest)																//Working out where to closest object is
   	{
   		closest = distance;
-  		direction = nMotorEncoder[motorC];
+  		direction = nMotorEncoder[motorC];									//Saving the position of the closest object
   		nxtDisplayTextLine(4,"direction: %d", direction);
   		nxtDisplayTextLine(2,"Closest: %d", closest);
   	}
 
 	}
 
-	motor[motorB]= 0;
-	motor[motorC]= 0;
-  wait10Msec(100);
+	motor[motorC]= 0;																					//Stopping everything once we are done
+  wait10Msec(50);
 
-  while (nMotorEncoder[motorC]> direction)
+  while (nMotorEncoder[motorC]> direction)									//Aligning the Robot with the object
   {
-  	motor[motorB]= search_speed;
-		motor[motorC]= -search_speed;
+  	motor[motorC]= -search_speed;
   }
 
-  motor[motorB]= 0;
-	motor[motorC]= 0;
-  wait10Msec(100);
+  motor[motorC]= 0;
+  wait10Msec(50);
   return closest;
 }
 
@@ -148,17 +147,27 @@ task main()
 	RaiseArm();
   Localize(400, 800, 25);
 
-  if (closest< 30)
+  if (closest< 25)
   {
-  	Localize (100, 200, 20);
+  	Localize (200, 400, 20);
+  	LowerArm();
+  	Move(25, 100, 15);
+  	RaiseArm();
+	  Move(-25, 100, -20);
+	  Move(25, -100, 15);
+	  LowerArm();
   }
-	Move_Closer_Sound(15, 15, 25);
-	Localize(100, 200, 10);
-	LowerArm();
-  Move(25, 25, 15);
-  RaiseArm();
-  Move(-25, -25,-20);
-  Move(25, -25, 15);
-  LowerArm();
+
+  else
+	{
+		Move_Closer_Sound(15, 25);
+		Localize(200, 400, 20);
+		LowerArm();
+	  Move(25, 100, 15);
+	  RaiseArm();
+	  Move(-25, 100, -20);
+	  Move(25, -100, 15);
+	  LowerArm();
+	}
 
 }
